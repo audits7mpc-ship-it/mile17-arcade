@@ -76,7 +76,7 @@ h1{font-size:25px;margin:0 0 4px;text-align:center;font-weight:400;}
 .pill.on{background:rgba(239,78,34,.2);border-color:var(--turmeric-2);color:var(--turmeric-2);}
 .good{color:var(--leaf);} .bad{color:var(--bad);}
 
-.modal{position:fixed;inset:0;background:rgba(6,12,11,.9);display:flex;align-items:center;
+.modal{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;background:rgba(6,12,11,.9);display:flex;align-items:center;
   justify-content:center;padding:24px;z-index:60;opacity:0;pointer-events:none;transition:opacity .25s;}
 .modal.show{opacity:1;pointer-events:auto;}
 .modal-card{background:linear-gradient(160deg,#213029,#16211e);border:1px solid rgba(239,78,34,.45);
@@ -138,7 +138,7 @@ h1{font-size:25px;margin:0 0 4px;text-align:center;font-weight:400;}
 .sud-board{position:relative;display:grid;grid-template-columns:repeat(9,1fr);gap:1px;
   background:#c5d0cb;border:3px solid #13201c;border-radius:6px;overflow:hidden;
   box-shadow:0 0 0 1px rgba(239,78,34,.55),0 8px 22px rgba(0,0,0,.45); max-width:min(92vw,360px);margin:14px auto 0;}
-.sud-board::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
+.sud-board::after{content:'';position:absolute;top:0;right:0;bottom:0;left:0;inset:0;pointer-events:none;z-index:2;
   background:
     linear-gradient(to right,
       transparent calc(33.333% - 1.25px), #13201c calc(33.333% - 1.25px),
@@ -200,7 +200,7 @@ h1{font-size:25px;margin:0 0 4px;text-align:center;font-weight:400;}
 .mem-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;
   transition:transform .42s cubic-bezier(.3,.8,.3,1.08);}
 .mem-card.up .mem-inner{transform:rotateY(180deg);}
-.mem-face{position:absolute;inset:0;border-radius:10px;display:flex;align-items:center;justify-content:center;
+.mem-face{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;border-radius:10px;display:flex;align-items:center;justify-content:center;
   -webkit-backface-visibility:hidden;backface-visibility:hidden;}
 .mem-back{background:
    repeating-linear-gradient(45deg,rgba(255,255,255,.05) 0 6px,transparent 6px 12px),
@@ -281,7 +281,7 @@ h1{font-size:25px;margin:0 0 4px;text-align:center;font-weight:400;}
   background:rgba(244,247,245,.5);border-radius:1px;}
 /* Board and arrows must both fit on one phone screen with nothing to
    scroll, so the board gives up size before the arrows go below the fold. */
-.sn-stage{position:relative;max-width:min(90vw,340px,calc(100svh - 360px));margin:0 auto;
+.sn-stage{position:relative;max-width:min(90vw,340px,calc(100vh - 360px));max-width:min(90vw,340px,calc(100svh - 360px));margin:0 auto;
   touch-action:none;-webkit-user-select:none;user-select:none;}
 .sn-stage .sn-board{max-width:100%;}
 .sn-speeds{margin-bottom:6px;}
@@ -296,9 +296,9 @@ h1{font-size:25px;margin:0 0 4px;text-align:center;font-weight:400;}
 .sn-speeds .pill{padding:7px 0;font-size:13px;}
 /* The veil covers the board before a run, when paused and after a crash.
    Tapping anywhere on it does the obvious thing. */
-.sn-veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+.sn-veil{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:6px;text-align:center;padding:16px;border-radius:6px;
-  background:rgba(8,14,13,.72);backdrop-filter:blur(1.5px);opacity:0;pointer-events:none;
+  background:rgba(8,14,13,.72);-webkit-backdrop-filter:blur(1.5px);backdrop-filter:blur(1.5px);opacity:0;pointer-events:none;
   transition:opacity .18s ease;}
 .sn-veil.on{opacity:1;pointer-events:auto;cursor:pointer;}
 .sn-veil-big{font-family:var(--ui);font-size:24px;font-weight:700;color:#f4f7f5;}
@@ -323,25 +323,25 @@ h1{font-size:25px;margin:0 0 4px;text-align:center;font-weight:400;}
 @media (max-height:640px){
   .sn-key{height:50px;font-size:21px;}
   .sn-pad{gap:6px;margin-top:8px;}
-  .sn-stage{max-width:min(90vw,340px,calc(100svh - 318px));}
+  .sn-stage{max-width:min(90vw,340px,calc(100vh - 318px));max-width:min(90vw,340px,calc(100svh - 318px));}
   .sn-veil-big{font-size:20px;}
 }
 /* The preview's control strip takes ~50px off the bottom of the screen. */
-body.pv-on .sn-stage{max-width:min(90vw,340px,calc(100svh - 412px));}
-@media (max-height:640px){ body.pv-on .sn-stage{max-width:min(90vw,340px,calc(100svh - 362px));} }
+body.pv-on .sn-stage{max-width:min(90vw,340px,calc(100vh - 412px));max-width:min(90vw,340px,calc(100svh - 412px));}
+@media (max-height:640px){ body.pv-on .sn-stage{max-width:min(90vw,340px,calc(100vh - 362px));max-width:min(90vw,340px,calc(100svh - 362px));} }
 /* Highway Run is a 3D road now: a portrait window onto it, sized so the
    window and the two lane keys both fit on one phone screen. */
 .hr-stage{position:relative;width:min(calc(100vw - 12px),560px);left:50%;transform:translateX(-50%);
-  height:clamp(320px,calc(100svh - 228px),760px);
+  height:clamp(320px,calc(100vh - 228px),760px);height:clamp(320px,calc(100svh - 228px),760px);
   margin:0 auto;border-radius:8px;overflow:hidden;background:#d9d3c2;touch-action:none;
   -webkit-user-select:none;user-select:none;
   box-shadow:0 0 0 1px rgba(239,78,34,.55),0 8px 22px rgba(0,0,0,.45);}
 .hr-stage canvas{display:block;width:100%;height:100%;}
 .hr-pad{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:min(88vw,300px);margin:12px auto 0;}
-body.pv-on .hr-stage{height:clamp(300px,calc(100svh - 276px),720px);}
+body.pv-on .hr-stage{height:clamp(300px,calc(100vh - 276px),720px);height:clamp(300px,calc(100svh - 276px),720px);}
 /* the score and speed, on the road */
 .hr-stage .g-hud{position:absolute;top:10px;left:10px;right:10px;z-index:5;margin:0 !important;pointer-events:none;}
-.hr-stage .g-hud > *{background:rgba(8,12,11,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+.hr-stage .g-hud > *{background:rgba(8,12,11,.6);-webkit-backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
   border-color:rgba(255,255,255,.2) !important;color:#fff;font-weight:600;}
 .hr-stage .sn-veil{z-index:4;}
 /* the lane keys, floating over the bottom of the road, above everything */
@@ -349,7 +349,7 @@ body.pv-on .hr-stage{height:clamp(300px,calc(100svh - 276px),720px);}
   display:flex;justify-content:space-between;}
 .hr-stage .hr-key{width:88px;height:64px;font-size:26px;color:#fff;
   background:rgba(8,12,11,.42) !important;border:1px solid rgba(255,255,255,.35) !important;
-  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
+  -webkit-backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
 
 /* tic tac toe */
 .g-ttt{text-align:center;}
@@ -407,7 +407,7 @@ body.pv-on .hr-stage{height:clamp(300px,calc(100svh - 276px),720px);}
 .cw-kb{position:sticky;bottom:0;z-index:5;margin:12px auto 0;max-width:min(98vw,440px);
   padding:8px 4px calc(8px + env(safe-area-inset-bottom,0px));
   background:rgba(12,21,19,.96);border-top:1px solid rgba(239,78,34,.35);border-radius:14px 14px 0 0;
-  backdrop-filter:blur(6px);}
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
 .cw-kb-row{display:flex;justify-content:center;gap:5px;margin-bottom:6px;}
 .cw-kb-row:last-child{margin-bottom:0;}
 .cw-key{flex:1 1 0;max-width:40px;height:46px;border-radius:8px;font-family:var(--sans);font-size:17px;
@@ -469,7 +469,7 @@ body.pv-on .hr-stage{height:clamp(300px,calc(100svh - 276px),720px);}
 /* ===================== engagement juice ===================== */
 @keyframes fxShake { 0%,100%{transform:translateX(0);} 15%{transform:translateX(-9px);} 30%{transform:translateX(8px);} 45%{transform:translateX(-6px);} 60%{transform:translateX(5px);} 75%{transform:translateX(-3px);} 90%{transform:translateX(2px);} }
 body.fx-shake{ animation: fxShake 0.42s ease; }
-.fx-confetti{ position:fixed; inset:0; pointer-events:none; z-index:9999; }
+.fx-confetti{ position:fixed; top:0;right:0;bottom:0;left:0;inset:0; pointer-events:none; z-index:9999; }
 @keyframes fxIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
 #hub.fx-in, #gameScreen.fx-in{ animation: fxIn .32s cubic-bezier(.2,.8,.3,1); }
 @keyframes cardIn { from{opacity:0; transform:translateY(8px) scale(.97);} to{opacity:1; transform:translateY(0) scale(1);} }
@@ -500,7 +500,7 @@ body.fx-shake{ animation: fxShake 0.42s ease; }
   background:linear-gradient(180deg,#2a1a10,#150c07);
   box-shadow:inset 0 0 0 2px #7a4a18, inset 0 0 0 5px #3b2210, 0 10px 26px rgba(0,0,0,.5);}
 /* chasing bulbs round the window */
-.slot-cab .spin-reels::before{content:'';position:absolute;inset:4px;border-radius:13px;pointer-events:none;
+.slot-cab .spin-reels::before{content:'';position:absolute;top:4px;right:4px;bottom:4px;left:4px;inset:4px;border-radius:13px;pointer-events:none;
   background:
    radial-gradient(circle,#ffe29a 0 2.2px,transparent 2.8px) 0 0/16px 16px;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
@@ -557,7 +557,7 @@ body.fx-shake{ animation: fxShake 0.42s ease; }
   0 0 34px rgba(255,210,90,.85), 0 10px 26px rgba(0,0,0,.5);}}
 .slot-cab.jackpot .spin-reels::before{animation-duration:.12s;opacity:1;}
 /* the wheel glows round its rim when it lands on a gift */
-.wheel-stage.won::after{content:'';position:absolute;inset:-6px;border-radius:50%;pointer-events:none;
+.wheel-stage.won::after{content:'';position:absolute;top:-6px;right:-6px;bottom:-6px;left:-6px;inset:-6px;border-radius:50%;pointer-events:none;
   box-shadow:0 0 0 3px rgba(255,210,90,.9), 0 0 40px rgba(255,190,80,.75);
   animation:wheelWin .45s ease-in-out 8 alternate;}
 @keyframes wheelWin{from{opacity:.35;}to{opacity:1;}}
@@ -667,7 +667,7 @@ body.fx-shake{ animation: fxShake 0.42s ease; }
 .wheel-stage:active{ cursor:grabbing; }
 /* a lamp above the wheel: bright near the top, darker toward the far rim */
 .wheel-disc{ position:relative; }
-.wheel-disc::after{ content:''; position:absolute; inset:0; border-radius:50%; pointer-events:none;
+.wheel-disc::after{ content:''; position:absolute; top:0;right:0;bottom:0;left:0;inset:0; border-radius:50%; pointer-events:none;
   background:radial-gradient(circle at 38% 28%, rgba(255,255,255,.22), rgba(255,255,255,0) 42%),
              radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 62%, rgba(0,0,0,.28) 100%); }
 .wheel-msg{ text-align:center; font-family:var(--sans); font-size:13px; color:#92a8a1; margin:6px 0 16px; }
@@ -689,7 +689,7 @@ body.fx-shake{ animation: fxShake 0.42s ease; }
   overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
   padding:9px 10px calc(9px + env(safe-area-inset-bottom,0px));
   background:rgba(8,14,13,.94); border-top:1px solid rgba(239,78,34,.45);
-  backdrop-filter:blur(8px); font-family:var(--sans); font-size:11.5px;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px); font-family:var(--sans); font-size:11.5px;
 }
 .pv-bar::-webkit-scrollbar{ display:none; }
 .pv-bar > *{ flex:0 0 auto; white-space:nowrap; }
@@ -765,7 +765,7 @@ body.pv-on #mwPanel{ padding-bottom:70px; }
 /* ---- Sudoku: ivory tiles on a dark slab ---- */
 .sud-board{ gap:2px; padding:3px; background:#0b2e26; overflow:visible; }
 /* the 3x3 box lines, redrawn in the arcade's orange so they read against the slab */
-.sud-board::after{ inset:3px;
+.sud-board::after{ top:3px;right:3px;bottom:3px;left:3px;inset:3px;
   background:
     linear-gradient(to right,
       transparent calc(33.333% - 1.4px), #ef5a26 calc(33.333% - 1.4px),
@@ -890,7 +890,7 @@ body.pv-on #mwPanel{ padding-bottom:70px; }
 /* ---- Spin the Wheel: a thick gold rim, chasing bulbs, lit pointer ---- */
 .wheel-disc{ box-shadow:0 0 0 5px #f6c451,0 0 0 8px #a8741c,0 5px 0 8px #6f4a0e,0 9px 0 8px #4d330a,
                         0 26px 36px 8px rgba(0,0,0,.6) !important; }
-.wheel-stage::before{ content:''; position:absolute; inset:-17px; border-radius:50%; pointer-events:none; z-index:2;
+.wheel-stage::before{ content:''; position:absolute; top:-17px;right:-17px;bottom:-17px;left:-17px;inset:-17px; border-radius:50%; pointer-events:none; z-index:2;
   border:5px dotted #ffe7a0; animation:t3Glow 1.1s ease-in-out infinite; }
 .wheel-stage.won::before{ animation:t3Glow .25s ease-in-out infinite; border-color:#fff3c4; }
 .wheel-pointer{ filter:drop-shadow(0 4px 3px rgba(0,0,0,.55)) drop-shadow(0 0 6px rgba(255,200,110,.5)); }
@@ -1517,18 +1517,36 @@ var PASS = (function(){
     var common = [], bits = [];
     function c(v){ try{ common.push(String(v)); }catch(e){} }
     function b(v){ try{ bits.push(String(v)); }catch(e){} }
+    /* Brave scrambles the processor count, the memory and the graphics
+       chip's name, and picks new values each time it restarts - so the same
+       phone looked like a different one in Brave than in Safari, and a new
+       one after every restart. Those are the details it scrambles, so:
+       on an iPhone (any browser - they are all Safari underneath) they are
+       left out entirely, since every iPhone reports the same "Apple GPU"
+       and they never told iPhones apart anyway; and in Brave elsewhere they
+       are left out too. What remains - screen, touch, timezone - Brave
+       leaves alone, so one phone reads as one phone in every browser. */
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var isBrave = !!(navigator.brave && typeof navigator.brave.isBrave === 'function');
+    var steady = isIOS || isBrave;
     try{ c(screen.width + 'x' + screen.height + 'x' + screen.colorDepth); }catch(e){}
     try{ c((screen.availWidth||0) + 'x' + (screen.availHeight||0)); }catch(e){}
-    c(navigator.hardwareConcurrency || 0);
-    c(navigator.deviceMemory || 0);
+    if(steady){ try{ c('dpr' + (window.devicePixelRatio || 1)); }catch(e){} }
+    if(!steady){
+      c(navigator.hardwareConcurrency || 0);
+      c(navigator.deviceMemory || 0);
+    }
     c(navigator.maxTouchPoints || 0);
     try{ c(Intl.DateTimeFormat().resolvedOptions().timeZone); }catch(e){}
-    try{
-      var gl = document.createElement('canvas').getContext('webgl');
-      var dbg = gl.getExtension('WEBGL_debug_renderer_info');
-      c(gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL));
-      c(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL));
-    }catch(e){}
+    if(!steady){
+      try{
+        var gl = document.createElement('canvas').getContext('webgl');
+        var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+        c(gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL));
+        c(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL));
+      }catch(e){}
+    }
     b(navigator.userAgent); b(navigator.platform); b(navigator.language);
     try{
       var cv = document.createElement('canvas'); cv.width = 220; cv.height = 44;
@@ -2533,7 +2551,13 @@ defgame('wheel','\ud83c\udfa1', function(root, ctx){
       g.textAlign = flip ? 'left' : 'right';
       g.textBaseline = 'middle';
       if(gift){
-        g.font = '56px Helvetica, Arial, sans-serif';
+        /* Safari on iPhone paints a colour emoji's outline with the current
+           fill when that fill is a gradient - and the slice was just filled
+           with one - so the gift came out as a pale orange blob. A solid
+           fill and an emoji font named first make every phone draw the real
+           gift box, the same way the Jackpot's reels already do. */
+        g.fillStyle = '#000'; g.globalAlpha = 1;
+        g.font = '56px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
         g.fillText(PRIZE_EMOJI, flip ? edge + 8 : edge - 8, 0);
       } else {
         g.fillStyle = '#fdf6e8';
@@ -5887,14 +5911,14 @@ defgame('crossword','\u270f\ufe0f', function(root, ctx){
 <style>
 #mwIntro{
   --m17-orange:#ef4e22; --m17-orange-lt:#ff6a3a; --m17-teal:#147b66; --m17-teal-lt:#79d3ba;
-  position:fixed; inset:0; z-index:9998; overflow:hidden;
+  position:fixed; top:0;right:0;bottom:0;left:0;inset:0; z-index:9998; overflow:hidden;
   background:radial-gradient(circle at 50% 40%,#213029 0%,#16211e 46%,#0c1513 100%);
   opacity:1; transition:opacity .55s ease;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   -webkit-user-select:none; user-select:none; touch-action:manipulation;
 }
 #mwIntro.mw-gone{ opacity:0; pointer-events:none; }
-#mwFx{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+#mwFx{ position:absolute; top:0;right:0;bottom:0;left:0;inset:0; width:100%; height:100%; display:block; }
 
 #mwHalo{
   position:absolute; left:50%; top:44%; width:560px; height:560px; margin:-280px 0 0 -280px;
@@ -5920,7 +5944,7 @@ defgame('crossword','\u270f\ufe0f', function(root, ctx){
 
 /* ---- stage 2: the Mile 17 panel ---- */
 #mwPanel{
-  position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
+  position:absolute; top:0;right:0;bottom:0;left:0;inset:0; display:flex; flex-direction:column; justify-content:center;
   max-width:420px; margin:0 auto; padding:0 26px; pointer-events:none;
 }
 #mwPanel .mw-on{ pointer-events:auto; }
@@ -5993,6 +6017,16 @@ defgame('crossword','\u270f\ufe0f', function(root, ctx){
 }
 @media (prefers-reduced-motion:reduce){
   #mwHalo,#mwSplash img,#mwCta::after{ animation:none !important; }
+}
+
+/* Phones too old for aspect-ratio (iPhones before iOS 15, older Android)
+   would squash the board cells flat. A zero-width item with percentage
+   padding holds each cell square - or card-shaped - the old way. */
+@supports not (aspect-ratio: 1 / 1){
+  .sud-cell::before,.ws-cell::before,.sn-cell::before{content:'';width:0;padding-top:100%;}
+  .mem-card{position:relative;}
+  .mem-card::before{content:'';display:block;padding-top:128.2%;}
+  .mem-card .mem-inner{position:absolute;top:0;right:0;bottom:0;left:0;}
 }
 </style>
 
