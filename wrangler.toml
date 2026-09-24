@@ -1,0 +1,23 @@
+# One Worker serves the arcade page and answers /pass. Pushing to GitHub
+# deploys both together.
+
+# Must match the Worker your QR code points at: mile17.<account>.workers.dev
+name = "mile17"
+main = "2-server/mile17-pass-worker.js"
+compatibility_date = "2026-09-22"
+
+# Keeps the settings you typed into the Cloudflare dashboard.
+keep_vars = true
+
+# Only the 1-arcade folder is published. 3-tools, with the preview where a
+# win can be forced, stays private.
+[assets]
+directory = "./1-arcade/"
+binding = "ASSETS"
+
+# Paste your Database ID between the quotes below.
+# Cloudflare -> Storage & databases -> D1 SQL database -> mile17 -> Database ID
+[[d1_databases]]
+binding = "DB"
+database_name = "mile17"
+database_id = "b9faf779-0eb5-481e-bbfa-45c6c43c46aa"
