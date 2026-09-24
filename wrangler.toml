@@ -1,0 +1,25 @@
+# One Worker serves the arcade page and answers /pass. Pushing to GitHub
+# deploys both together.
+
+# Must match the Worker your QR code points at: mile17.<account>.workers.dev
+name = "mile17"
+main = "worker/index.js"
+compatibility_date = "2026-09-22"
+
+# A push from GitHub replaces the dashboard's plain-text variables with this
+# file's. This keeps them. RESET_KEY should be a Secret, which is always kept.
+keep_vars = true
+
+# The folder holding index.html. Only this folder is published — the preview
+# build in tools/ stays off the internet.
+[assets]
+directory = "./public/"
+binding = "ASSETS"
+
+
+# Paste the Database ID from your D1 database's page in the dashboard.
+# Storage & Databases -> D1 -> mile17 -> the long id near the top.
+[[d1_databases]]
+binding = "DB"
+database_name = "mile17"
+database_id = "PASTE_YOUR_DATABASE_ID_HERE"
