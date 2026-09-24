@@ -16,17 +16,12 @@
  * free plan allows 100,000 row writes a day — fifty times the headroom,
  * for the same money: none.
  *
- * DEPLOY — all of this is done in the Cloudflare dashboard, no terminal
- *   1. Storage & Databases -> D1 -> Create database, name it "mile17".
- *   2. Open it, go to Console, paste the SQL below, run it.
- *   3. Compute -> Create -> Workers -> Hello World -> name "mile17-pass"
- *      -> Deploy -> Edit code -> replace everything with this file -> Deploy.
- *   4. That worker's Settings -> Bindings -> D1 database:
- *         Variable name: DB          Database: mile17
- *   5. Settings -> Variables:
- *         ALLOW_ORIGIN = https://your-pages-address   (no trailing slash)
- *         RESET_KEY    = any password you invent
- *   6. Put the worker's URL into PASS_API at the top of the arcade HTML.
+ * HOW THIS IS DEPLOYED
+ * This Worker serves the arcade page and answers /pass, from one address.
+ * wrangler.toml in the repository root points `main` at this file and
+ * `[assets]` at the folder holding index.html, so a push to GitHub deploys
+ * both together. The only things set by hand are the D1 database id in
+ * wrangler.toml and RESET_KEY as a secret in the dashboard.
  *
  * THE SQL FOR STEP 2
  *   CREATE TABLE IF NOT EXISTS passes (
@@ -61,7 +56,7 @@
  */
 
 const ODDS  = 50;                       // one guest in fifty
-const TRIES = { spin: 3, wheel: 1 };    // Jackpot gives three pulls, the wheel one
+const TRIES = { spin: 3, wheel: 2 };    // Jackpot gives three pulls, the wheel two
 const GAMES = ['spin', 'wheel'];
 const TZ_OFFSET_MIN = 330;              // IST, UTC+5:30
 const KEEP_DAYS = 2;
@@ -103,6 +98,8 @@ function freshPass(id, day) {
 }
 
 function cors(env) {
+  // The page is served by this same Worker, so these headers are only a
+  // courtesy for anyone who later splits the two onto separate addresses.
   return {
     'Access-Control-Allow-Origin': env.ALLOW_ORIGIN || '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -153,6 +150,17 @@ async function insert(db, p) {
 
 export default {
   async fetch(request, env, ctx) {
+    const path = new URL(request.url).pathname;
+
+    // Anything that is not the pass endpoint is the arcade itself. Static
+    // assets are served before this runs, so reaching here with another path
+    // means the file genuinely is not there.
+    if (path !== '/pass') {
+      return env.ASSETS
+        ? env.ASSETS.fetch(request)
+        : new Response('Not found', { status: 404 });
+    }
+
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors(env) });
     if (request.method !== 'POST') return json({ ok: false, error: 'POST only' }, env, 405);
     if (!env.DB) return json({ ok: false, error: 'D1 not bound as DB' }, env, 500);
@@ -229,3 +237,4 @@ export default {
     }
   }
 };
+
