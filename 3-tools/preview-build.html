@@ -1559,6 +1559,25 @@ var PASS = (function(){
     return { device: hash(common.join('|')), browser: hash(common.concat(bits).join('|')) };
   }
 
+  function guestId(){
+    var KEY = 'mw17_guest', id = null;
+    try{ id = localStorage.getItem(KEY); }catch(e){}
+    if(!id){
+      try{ var m = document.cookie.match(/(?:^|; )mw17guest=([a-z0-9]{12,40})/); if(m) id = m[1]; }catch(e){}
+    }
+    if(!id || !/^[a-z0-9]{12,40}$/.test(id)){
+      var bytes = new Uint8Array(16);
+      try{ (window.crypto || window.msCrypto).getRandomValues(bytes); }
+      catch(e){ for(var i=0;i<16;i++) bytes[i] = Math.floor(Math.random() * 256); }
+      id = 'g';
+      for(var j=0;j<16;j++) id += ('0' + bytes[j].toString(36)).slice(-2);
+      id = id.slice(0, 29);
+    }
+    try{ localStorage.setItem(KEY, id); }catch(e){}
+    try{ document.cookie = 'mw17guest=' + id + ';path=/;max-age=' + (400*24*3600) + ';SameSite=Lax'; }catch(e){}
+    return id;
+  }
+
   function live(r){ return !!(r && r.day && r.day === dayKey()); }
 
   /* ---- the three local stores ---- */
@@ -1664,6 +1683,7 @@ var PASS = (function(){
   function api(action, extra, ms){
     if(PREVIEW) return Promise.resolve(null);
     var body = { action:action, device:dev, browser:brw };
+    if(extra && extra.key) body.key = extra.key;
     for(var k in extra) if(extra.hasOwnProperty(k)) body[k] = extra[k];
     var ctrl = ('AbortController' in window) ? new AbortController() : null;
     var t = setTimeout(function(){ if(ctrl) ctrl.abort(); }, ms || 3500);
@@ -1703,16 +1723,38 @@ var PASS = (function(){
       if(hydrated){ setTimeout(cb, 0); return; }
       waiting.push(cb);
       if(waiting.length > 1) return;
-      var p = prints(); dev = p.device; brw = p.browser;
+      /* Who has had their go is decided by a private random ID made the
+         first time this browser opens the arcade - not by reading the phone.
+         Reading the phone could not tell two phones of the same model apart
+         (every iPhone calls its chip "Apple GPU"; many Android phones share
+         a screen, memory and chip), so real guests who had never played
+         were told their go was spent. A random ID is never shared by two
+         guests. It is kept in three places, like the pass itself. */
+      dev = guestId(); brw = dev;
 
       if(PREVIEW){ finish([], null); return; }    // nothing remembered, nothing locked
 
-      /* There is deliberately no reset here. A guest who finds the URL
-         cannot hand themselves a second go, and neither can a phone at the
-         table. Clearing a pass is an operator action against the server -
-         see the reset action in mile17-pass-worker.js, which is guarded by
-         RESET_KEY. */
-
+      /* Staff reset: open the arcade with ?staff=<RESET_KEY> and this one
+         device starts today fresh - film, prize game and all. The password
+         is checked by the server, never by the page, so a guest who guesses
+         at it gets nothing: the local copy is only cleared once the server
+         has confirmed the reset. The password is then taken out of the
+         address bar so it is not left on the screen or in history. */
+      var staffKey = null;
+      try{ staffKey = new URLSearchParams(location.search).get('staff'); }catch(e){}
+      if(staffKey){
+        try{
+          var q = new URLSearchParams(location.search); q.delete('staff');
+          history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+        }catch(e){}
+        api('reset', { key: staffKey }).then(function(j){
+          if(j && j.ok && j.reset) wipe();
+          load();
+        });
+        return;
+      }
+      load();
+      function load(){
       var sync = [lsGet(), ckGet()], settled = false;
       function done(async, server){
         if(settled) return; settled = true;
@@ -1724,6 +1766,7 @@ var PASS = (function(){
       ]).then(function(r){ done(r[0], r[1]); },
               function(){ done(null, null); });
       setTimeout(function(){ done(null, null); }, 4000);
+      }
     },
 
     game:        function(){ return rec ? rec.game : null; },
@@ -1817,6 +1860,18 @@ function prizeT(lang){ return PRIZE_TXT[lang] || PRIZE_TXT.en; }
 /* The shared tail that both prize games show once the go is spent:
    the reward if there is one, then the rest of the arcade. Neither
    prize game is ever offered here - one reward game per guest. */
+
+/* After a prize round the page glides down so the top of what comes next -
+   the reward card for a winner, "Play more games" for everyone - sits at the
+   top of the screen. It used to ask the browser to scroll only as far as
+   was "nearest", which on a tall panel whose top was already peeking in at
+   the bottom meant barely moving at all. */
+function revealTail(el){
+  if(!el || !el.isConnected) return;
+  var top = (window.pageYOffset || document.documentElement.scrollTop || 0) + el.getBoundingClientRect().top - 14;
+  try{ window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' }); }
+  catch(e){ window.scrollTo(0, Math.max(0, top)); }
+}
 function prizeTail(root, ctx){
   var T = prizeT(ctx.lang), res = PASS.result();
   var box = h('div','prize-tail');
@@ -2347,7 +2402,7 @@ defgame('spin','\ud83c\udfb0', function(root, ctx){
     if(tail) tail.remove();
     tail = prizeTail(wrap, ctx);
     if(animate) setTimeout(function(){
-      tail.scrollIntoView({ behavior:'smooth', block:'nearest' });
+      revealTail(tail);
     }, 900);
   }
 
@@ -2460,7 +2515,7 @@ defgame('spin','\ud83c\udfb0', function(root, ctx){
       card.appendChild(h('p',null, T.missNote));
     }
     var b = h('button','btn-ghost', ctx.t('close'));
-    on(b,'click',function(){ SFX.click(); ov.remove(); });
+    on(b,'click',function(){ SFX.click(); ov.remove(); revealTail(tail); });
     card.appendChild(b); ov.appendChild(card); root.appendChild(ov);
   }
 
@@ -2685,7 +2740,7 @@ defgame('wheel','\ud83c\udfa1', function(root, ctx){
     if(tail) tail.remove();
     tail = prizeTail(wrap, ctx);
     if(animate) setTimeout(function(){
-      tail.scrollIntoView({ behavior:'smooth', block:'nearest' });
+      revealTail(tail);
     }, 700);
   }
   function showResult(res){
@@ -2699,7 +2754,7 @@ defgame('wheel','\ud83c\udfa1', function(root, ctx){
       card.appendChild(h('p',null, T.missNote));
     }
     var b = h('button','btn-ghost', ctx.t('close'));
-    on(b,'click',function(){ SFX.click(); ov.remove(); });
+    on(b,'click',function(){ SFX.click(); ov.remove(); revealTail(tail); });
     card.appendChild(b); ov.appendChild(card); root.appendChild(ov);
   }
 
