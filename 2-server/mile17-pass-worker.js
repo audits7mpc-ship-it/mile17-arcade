@@ -82,10 +82,31 @@ function makeCode(table) {
 
 /* A brand new pass. The draw happens here, once, and the winning pull is
    pinned in advance — so three pulls give drama, not better odds. */
-function freshPass(id, day) {
+/* Exactly one winner in every 50 guests - not a 1-in-50 chance each, which
+   can give three winners in 50 or none in 150. The day's new guests are
+   counted in blocks of 50, and one position in each block is the winner.
+   Which position is decided by a secret, so nobody can time a scan to land
+   on it. A guest only ever gets one draw a day, however many pulls or spins
+   their game gives them. */
+async function drawForNewGuest(env, day) {
+  try {
+    const row = await env.DB.prepare(
+      'INSERT INTO draws (day, n) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET n = n + 1 RETURNING n'
+    ).bind(day).first();
+    const seq = row && row.n ? row.n : 1;                 // this guest is the nth new guest today
+    const block = Math.floor((seq - 1) / ODDS), pos = (seq - 1) % ODDS;
+    const secret = env.DRAW_SECRET || env.RESET_KEY || 'mile17-draw';
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret + '|' + day + '|' + block));
+    const slot = new DataView(h).getUint32(0) % ODDS;
+    return pos === slot;
+  } catch (e) {
+    return Math.floor(Math.random() * ODDS) === 0;       // counter unavailable: fall back to the plain 1-in-50
+  }
+}
+
+function freshPass(id, day, wins) {
   const game = GAMES[Math.floor(Math.random() * GAMES.length)];
   const tries = TRIES[game];
-  const wins = Math.floor(Math.random() * ODDS) === 0;
   return {
     id, day, game, tries,
     spent: 0,
@@ -138,14 +159,43 @@ async function ensureSchema(db) {
     'win_on INTEGER, won INTEGER NOT NULL DEFAULT 0, code TEXT, ' +
     'intro INTEGER NOT NULL DEFAULT 0, created TEXT NOT NULL)'
   );
+  // Added later: a scrambled code for "this phone on this connection".
+  // Older databases get the column on the first request; if it is already
+  // there the database says so and nothing changes.
+  try { await db.exec('ALTER TABLE passes ADD COLUMN net TEXT'); } catch (e) {}
+  try { await db.exec('CREATE TABLE IF NOT EXISTS draws (day TEXT PRIMARY KEY, n INTEGER NOT NULL)'); } catch (e) {}
+  try { await db.exec('CREATE INDEX IF NOT EXISTS passes_net ON passes(day, net)'); } catch (e) {}
   schemaChecked = true;
+}
+
+/* Rescanning the QR code often opens the link somewhere with empty storage -
+   a private tab, a scanner app's own browser, a different browser - so the
+   guest's private ID is lost and they look new. The same phone on the same
+   internet connection is still the same person, so the server also keeps a
+   code made from the phone's details plus its connection, and a "new" guest
+   who matches a go already started in the last few hours carries on with
+   that go instead of starting another.
+
+   Only a one-way scrambled code is stored, never the connection address
+   itself. On mobile data the connection is usually unique to the phone; on
+   shared Wi-Fi, two phones of exactly the same model can match - which is
+   why the match only lasts for the length of a visit. */
+const TWIN_HOURS = 3;
+async function netCode(request, fp) {
+  if (!fp) return null;
+  let ip = request.headers.get('CF-Connecting-IP') || '';
+  if (!ip) return null;
+  if (ip.includes(':')) ip = ip.split(':').slice(0, 4).join(':');   // IPv6: the phone's own network part
+  const data = new TextEncoder().encode('mile17|' + fp + '|' + ip);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(hash)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 async function insert(db, p) {
   await db.prepare(
-    'INSERT INTO passes (id, day, game, tries, spent, win_on, won, code, intro, created) ' +
-    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(p.id, p.day, p.game, p.tries, p.spent, p.win_on, p.won, p.code, p.intro, p.created).run();
+    'INSERT INTO passes (id, day, game, tries, spent, win_on, won, code, intro, created, net) ' +
+    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(p.id, p.day, p.game, p.tries, p.spent, p.win_on, p.won, p.code, p.intro, p.created, p.net || null).run();
 }
 
 export default {
@@ -174,20 +224,31 @@ export default {
     await ensureSchema(env.DB);
 
     const day = dayKey();
-    const id = `${day}:${device}`;
+    let id = `${day}:${device}`;
+    const fp = String(body.browser || '').slice(0, 64);
+    const net = (fp && fp !== device) ? await netCode(request, fp) : null;
 
     let pass = await env.DB.prepare('SELECT * FROM passes WHERE id = ?').bind(id).first();
+    if (!pass && net && body.action !== 'reset') {
+      const since = new Date(Date.now() - TWIN_HOURS * 3600000).toISOString();
+      const twin = await env.DB.prepare(
+        'SELECT * FROM passes WHERE day = ? AND net = ? AND created > ? ORDER BY created DESC LIMIT 1'
+      ).bind(day, net, since).first();
+      if (twin) { pass = twin; id = twin.id; }       // same phone, fresh storage: carry on with its go
+    }
 
     switch (body.action) {
       case 'open': {
         // Only ever writes on the first load of the day. Every later open is
         // a read, which is what keeps this inside the free plan.
         if (!pass) {
-          pass = freshPass(id, day);
+          pass = freshPass(id, day, await drawForNewGuest(env, day)); pass.net = net;
           await insert(env.DB, pass);
           // Sweep yesterday out now and then rather than on a schedule.
           if (Math.random() < 0.02) {
-            const job = env.DB.prepare('DELETE FROM passes WHERE day < ?').bind(daysAgo(KEEP_DAYS)).run();
+            // Winners are kept for good, so the restaurant can always count
+            // them. Only non-winning rows are tidied away after KEEP_DAYS.
+            const job = env.DB.prepare('DELETE FROM passes WHERE day < ? AND won = 0').bind(daysAgo(KEEP_DAYS)).run();
             if (ctx && ctx.waitUntil) ctx.waitUntil(job); else await job;
           }
         }
@@ -195,7 +256,7 @@ export default {
       }
 
       case 'intro': {
-        if (!pass) { pass = freshPass(id, day); pass.intro = 1; await insert(env.DB, pass); }
+        if (!pass) { pass = freshPass(id, day, await drawForNewGuest(env, day)); pass.net = net; pass.intro = 1; await insert(env.DB, pass); }
         else if (!pass.intro) {
           pass.intro = 1;
           await env.DB.prepare('UPDATE passes SET intro = 1 WHERE id = ?').bind(id).run();
@@ -204,7 +265,7 @@ export default {
       }
 
       case 'play': {
-        if (!pass) { pass = freshPass(id, day); await insert(env.DB, pass); }
+        if (!pass) { pass = freshPass(id, day, await drawForNewGuest(env, day)); pass.net = net; await insert(env.DB, pass); }
         // Already spent: hand back what happened, never a second draw.
         if (pass.spent >= pass.tries) {
           return json({ ...publicView(pass), hit: false, spent: pass.spent, tries: pass.tries }, env);
@@ -229,6 +290,7 @@ export default {
           return json({ ok: false, error: 'not allowed' }, env, 403);
         }
         await env.DB.prepare('DELETE FROM passes WHERE id = ?').bind(id).run();
+        if (net) await env.DB.prepare('DELETE FROM passes WHERE day = ? AND net = ?').bind(day, net).run();
         return json({ ok: true, reset: true }, env);
       }
 
@@ -237,4 +299,3 @@ export default {
     }
   }
 };
-
