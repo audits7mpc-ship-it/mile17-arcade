@@ -533,6 +533,14 @@ body.fx-shake{ animation: fxShake 0.42s ease; }
   box-shadow:0 3px 7px rgba(0,0,0,.5),inset 0 -2px 3px rgba(0,0,0,.25);}
 .slot-lever.pulled .lv-arm{transform:scaleY(-.62);transition:transform .16s ease-in;}
 .slot-lever.off{opacity:.45;cursor:default;}
+.p3d-wait{position:relative;}
+.p3d-wait > :not(.p3d-loading){visibility:hidden;}
+.p3d-loading{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;font-family:var(--sans);font-size:13px;font-weight:600;color:#d6e4de;
+  pointer-events:none;z-index:5;}
+.p3d-loading span{width:34px;height:34px;border-radius:50%;border:3px solid rgba(239,78,34,.25);
+  border-top-color:#ef4e22;animation:p3dSpin .8s linear infinite;}
+@keyframes p3dSpin{to{transform:rotate(360deg);}}
 /* the demonstration finger, its press ring, and the caption */
 .demo-hand{position:absolute;left:0;top:0;z-index:9;font-size:38px;line-height:1;pointer-events:none;
   filter:drop-shadow(0 4px 6px rgba(0,0,0,.55));opacity:0;}
@@ -1730,7 +1738,10 @@ var PASS = (function(){
          a screen, memory and chip), so real guests who had never played
          were told their go was spent. A random ID is never shared by two
          guests. It is kept in three places, like the pass itself. */
-      dev = guestId(); brw = dev;
+      dev = guestId();
+      // The phone's details go along too, so the server can tell a rescan
+      // from the same phone - opened with empty storage - from a new guest.
+      try{ brw = prints().device; }catch(e){ brw = dev; }
 
       if(PREVIEW){ finish([], null); return; }    // nothing remembered, nothing locked
 
@@ -2282,6 +2293,7 @@ defgame('spin','\ud83c\udfb0', function(root, ctx){
   function playDemo(loops){
     stopDemo();
     if(!cab.isConnected || !leverLive() || !cab.animate) return;
+    if(cab.classList.contains('p3d-wait')){ demoWait = setTimeout(function(){ playDemo(loops); }, 400); return; }
     var knob = lever.querySelector('.lv-knob');
     var cr = cab.getBoundingClientRect(), kr = knob.getBoundingClientRect(), ar = arm.getBoundingClientRect();
     var x = kr.left + kr.width / 2 - cr.left - 19, y = kr.top + kr.height / 2 - cr.top - 4;
@@ -2825,6 +2837,7 @@ defgame('wheel','\ud83c\udfa1', function(root, ctx){
     function playDemo(loops){
       stopDemo();
       if(!stageEl.isConnected || busy || PASS.used() || !disc.animate) return;
+      if(stageEl.classList.contains('p3d-wait')){ demoWait = setTimeout(function(){ playDemo(loops); }, 400); return; }
       var sr = stageEl.getBoundingClientRect(), dr = disc.getBoundingClientRect();
       var cx0 = dr.left + dr.width / 2 - sr.left, cy0 = dr.top + dr.height / 2 - sr.top;
       var R = dr.width * .36, D = 3000, SW = 120, a0 = -30;
@@ -4760,17 +4773,46 @@ defgame('snake','\ud83d\ude97', function(root, ctx){
    draw it, nothing is swapped: the guest plays the machine they would have
    had anyway, and their go is never held up by a slow signal. */
 var P3D_WAIT = 4500;
+/* While the 3D engine is still arriving, the guest used to see the old flat
+   machine for a few seconds - and on a slow connection for the whole visit -
+   then the 3D one only after a refresh. Now the machine waits behind a short
+   "Setting up the machine" until the 3D one is ready, and only falls back
+   to the flat machine if the engine really cannot be fetched. */
 function prize3D(kind, parts){
   var alive = true, api = null, late = false;
-  var timer = setTimeout(function(){ late = true; }, P3D_WAIT);
+  var host = kind === 'slot' ? parts.cab : parts.stage, loader = null;
+  if(!window.THREE && host){
+    host.classList.add('p3d-wait');
+    loader = document.createElement('div'); loader.className = 'p3d-loading';
+    loader.appendChild(document.createElement('span'));
+    loader.appendChild(document.createTextNode('Setting up the machine\u2026'));
+    host.appendChild(loader);
+  }
+  function ready(){
+    if(host) host.classList.remove('p3d-wait');
+    if(loader && loader.parentNode) loader.parentNode.removeChild(loader);
+    loader = null;
+  }
+  var timer = setTimeout(function(){ late = true; ready(); }, P3D_WAIT);
   hrLoadThree().then(function(T){
     clearTimeout(timer);
     if(!alive || late) return;
     try{ api = (kind === 'slot' ? p3dSlot : p3dWheel)(T, parts); }
     catch(e){ api = null; if(window.console) console.warn('3D machine unavailable', e); }
-  }, function(){ clearTimeout(timer); });
-  return function(){ alive = false; clearTimeout(timer); if(api) api.dispose(); };
+    // reveal once the first 3D frame is on screen, so nothing flat flashes
+    requestAnimationFrame(function(){ requestAnimationFrame(ready); });
+  }, function(){ clearTimeout(timer); ready(); });
+  return function(){ alive = false; clearTimeout(timer); ready(); if(api) api.dispose(); };
 }
+
+/* Start fetching the 3D engine as soon as the page opens - the opening film
+   runs for about five seconds, which is time enough on most connections -
+   so the machine is usually ready the moment Play & Win is tapped. */
+(function(){
+  function early(){ try{ hrLoadThree()['catch'](function(){}); }catch(e){} }
+  if(document.readyState === 'complete') setTimeout(early, 200);
+  else window.addEventListener('load', function(){ setTimeout(early, 200); });
+})();
 
 /* A renderer laid exactly over a piece of the page, working in CSS pixels:
    one unit in the scene is one pixel on screen at the machine's face, so
