@@ -168,7 +168,8 @@ async function ensureSchema(db) {
   schemaChecked = true;
 }
 
-/* Rescanning the QR code often opens the link somewhere with empty storage -
+/* NOT USED ANY MORE (kept so older records still read correctly).
+   Rescanning the QR code often opens the link somewhere with empty storage -
    a private tab, a scanner app's own browser, a different browser - so the
    guest's private ID is lost and they look new. The same phone on the same
    internet connection is still the same person, so the server also keeps a
@@ -225,17 +226,13 @@ export default {
 
     const day = dayKey();
     let id = `${day}:${device}`;
-    const fp = String(body.browser || '').slice(0, 64);
-    const net = (fp && fp !== device) ? await netCode(request, fp) : null;
+    /* Strictly one go per phone: a guest is known only by the private ID
+       their own browser keeps. Nothing about the phone's model or its
+       connection is matched any more - two phones of the same brand and
+       model, on the same Wi-Fi, always get a go each. */
+    const net = null;
 
     let pass = await env.DB.prepare('SELECT * FROM passes WHERE id = ?').bind(id).first();
-    if (!pass && net && body.action !== 'reset') {
-      const since = new Date(Date.now() - TWIN_HOURS * 3600000).toISOString();
-      const twin = await env.DB.prepare(
-        'SELECT * FROM passes WHERE day = ? AND net = ? AND created > ? ORDER BY created DESC LIMIT 1'
-      ).bind(day, net, since).first();
-      if (twin) { pass = twin; id = twin.id; }       // same phone, fresh storage: carry on with its go
-    }
 
     switch (body.action) {
       case 'open': {
